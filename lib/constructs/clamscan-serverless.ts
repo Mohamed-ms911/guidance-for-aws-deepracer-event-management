@@ -56,30 +56,33 @@ export class ClamscanServerless extends Construct {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
-    const updateLambda = new StandardLambdaDockerImageFuncion(this, 'ClamscanUpdateFunction', {
-      description: 'Update ClamAV definitions',
-      code: lambda.DockerImageCode.fromImageAsset('lib/lambdas/clamscan_update', {
-        platform: Platform.LINUX_AMD64,
-      }),
-      timeout: Duration.minutes(15),
-      architecture: lambda.Architecture.X86_64,
-      memorySize: 1024,
-      environment: {
-        DEFS_BUCKET: libraryBucket.bucketName,
-        CONTAINER_DEFINITIONS_PATH: CONTAINER_DEFINITIONS_PATH,
-      },
-    });
+    // DISABLED: ClamAV update Lambda to prevent CDN 403 errors
+    // const updateLambda = new StandardLambdaDockerImageFuncion(this, 'ClamscanUpdateFunction', {
+    //   description: 'Update ClamAV definitions',
+    //   code: lambda.DockerImageCode.fromImageAsset('lib/lambdas/clamscan_update', {
+    //     platform: Platform.LINUX_AMD64,
+    //   }),
+    //   timeout: Duration.minutes(15),
+    //   architecture: lambda.Architecture.X86_64,
+    //   memorySize: 1024,
+    //   environment: {
+    //     DEFS_BUCKET: libraryBucket.bucketName,
+    //     CONTAINER_DEFINITIONS_PATH: CONTAINER_DEFINITIONS_PATH,
+    //   },
+    // });
 
-    new Rule(this, 'UpdateVirusDefinitionRule', {
-      schedule: Schedule.rate(Duration.hours(12)),
-      targets: [new LambdaFunction(updateLambda)],
-    });
+    // DISABLED: Scheduled virus definition updates
+    // new Rule(this, 'UpdateVirusDefinitionRule', {
+    //   schedule: Schedule.rate(Duration.hours(12)),
+    //   targets: [new LambdaFunction(updateLambda)],
+    // });
 
-    const downloadTrigger = new Trigger(this, 'initializeVirusDefinitions', {
-      handler: updateLambda,
-      timeout: Duration.minutes(15),
-      executeAfter: [updateLambda],
-    });
+    // DISABLED: Initial virus definition download
+    // const downloadTrigger = new Trigger(this, 'initializeVirusDefinitions', {
+    //   handler: updateLambda,
+    //   timeout: Duration.minutes(15),
+    //   executeAfter: [updateLambda],
+    // });
 
     const scanLambda = new StandardLambdaDockerImageFuncion(this, 'ClamscanFunction', {
       description: 'Scan uploaded files',
@@ -100,7 +103,8 @@ export class ClamscanServerless extends Construct {
       },
     });
 
-    scanLambda.node.addDependency(downloadTrigger);
+    // DISABLED: No dependency on update trigger
+    // scanLambda.node.addDependency(downloadTrigger);
 
     const postLambda = new StandardLambdaPythonFunction(this, 'clamscanPostFunction', {
       description: 'Moves scanned files to final or infected bucket',
@@ -160,7 +164,8 @@ export class ClamscanServerless extends Construct {
       })
     );
 
-    libraryBucket.grantReadWrite(updateLambda);
+    // DISABLED: No update lambda permissions needed
+    // libraryBucket.grantReadWrite(updateLambda);
     libraryBucket.grantRead(scanLambda);
 
     props.uploadBucket.grantRead(scanLambda);
